@@ -68,14 +68,26 @@ async function scoreStead(user) {
   const items = Object.keys(inv);
 
   const sum = arr => arr.reduce((a, x) => a + x, 0);
-  return sum(items.map(i => inv[i] * scoretable.items[i])) +
-         sum(plants.map(p => scoretable.plants[p.kind]));
+  const max = arr => arr.reduce((a, x) => x[1] > a[1] ? x : a)[0];
+  const invsum = sum(items.map(i => inv[i] * scoretable.items[i]));
+  const plantsum = sum(plants.map(p => scoretable.plants[p.kind]))
+  const totalsum = invsum + plantsum;
+  return {
+    percent_plants: plantsum/totalsum,
+    sum: totalsum,
+    big_ticket_item: max(items.map(i => [i, inv[i] * scoretable.items[i]])),
+  };
 }
 
-function render(scores) {
-  scores.sort((a, b) => b[1] - a[1]);
+function render(manifest, scores) {
+  scores.sort((a, b) => b[1].sum - a[1].sum);
 
-  const fmt = ([name, hkpts]) => `<b>${name}</b> ${hkpts}<i>hkpts</i> <br>`;
+  const fmt = ([name, { sum, percent_plants, big_ticket_item }]) => {
+    let tag = (100 * percent_plants).toFixed(0) + '% plants, ';
+    tag += 'mostly ' + manifest.items[big_ticket_item].name;
+    tag = `<i style="float:right;font-size:8pt">${tag}</i>`;
+    return `<b>${name}</b> ${sum}<i>hkpts</i> ${tag} <br>`;
+  };
 
   let html = '';
   if (scores.length) html += `<h1>👑 ${fmt(scores.shift())}</h1>`;
@@ -88,11 +100,12 @@ function render(scores) {
 
 (async () => {
   const users = await fetch(server + "/users").then(x => x.json());
+  const manifest = await fetch(server + "/manifest").then(x => x.json());
 
   const scores = {};
   for (const user of users) {
     scores[user] = await scoreStead(user);
-    render(Object.entries(scores));
+    render(manifest, Object.entries(scores));
   }
 })();
 
