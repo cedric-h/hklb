@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Hello, world!</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="" />
+  <style>
+  document, body {
+    font-family: sans-serif;
+  }
+  i {
+    font-size: 10pt;
+  }
+  h2, h3, h4 {
+    font-weight: normal;
+  }
+  </style>
+</head>
+<body>
+  <h1>Hello, world!</h1>
+  <script>
+const scoretable = {
+  "items": {
+    "bbc_item": 1,
+    "bbc_egg": 1,
+    "bbc_compressence": 1,
+    "bbc_essence": 1,
+    "bbc_seed": 1,
+    "hvv_item": 1,
+    "hvv_egg": 1,
+    "hvv_compressence": 1,
+    "hvv_essence": 1,
+    "hvv_seed": 1,
+    "cyl_item": 1,
+    "cyl_egg": 1,
+    "cyl_compressence": 1,
+    "cyl_essence": 1,
+    "cyl_seed": 1,
+    "nest_egg": 1,
+    "powder_t1": 1,
+    "powder_t2": 1,
+    "powder_t3": 1,
+    "land_deed": 1
+  },
+  "plants": {
+    "dirt": 100,
+    "bbc": 105,
+    "cyl": 105,
+    "hvv": 105
+  }
+};
+const server = "https://misguided.enterprises/hkgi";
+
+async function scoreStead(user) {
+  let response = await fetch(
+    server + "/getstead",
+    { headers: { 'Authorization': 'Basic ' + btoa(user) } }
+  ).then(x => x.json());
+
+  if (response.ok != undefined && !response.ok) {
+    console.log("couldn't score " + user);
+    console.log("response", response);
+    return 0;
+  }
+
+  const { inv, plants } = response;
+  const items = Object.keys(inv);
+
+  const sum = arr => arr.reduce((a, x) => a + x, 0);
+  return sum(items.map(i => inv[i] * scoretable.items[i])) +
+         sum(plants.map(p => scoretable.plants[p.kind]));
+}
+
+function render(scores) {
+  scores.sort((a, b) => b[1] - a[1]);
+
+  const fmt = ([name, hkpts]) => `<b>${name}</b> ${hkpts}<i>hkpts</i> <br>`;
+
+  let html = '';
+  if (scores.length) html += `<h1>👑 ${fmt(scores.shift())}</h1>`;
+  if (scores.length) html += `<h2>🌲 ${fmt(scores.shift())}</h2>`;
+  if (scores.length) html += `<h3>🪴 ${fmt(scores.shift())}</h3>`;
+  for (const entry of scores)
+    html += '🌱 ' + fmt(entry);
+  document.body.innerHTML = html;
+}
+
+(async () => {
+  const users = await fetch(server + "/users").then(x => x.json());
+
+  const scores = {};
+  for (const user of users) {
+    scores[user] = await scoreStead(user);
+    render(Object.entries(scores));
+  }
+})();
+
+  </script>
+</body>
+</html>;
